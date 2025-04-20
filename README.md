@@ -38,7 +38,7 @@
 2. このパッケージをROS 2ワークスペースの `src` ディレクトリにクローンします。
    ```bash
    cd ~/colcon_ws/src
-   git clone https://github.com/m-shigemori/gemini_ros.git
+   git clone https://github.com/TeamSOBITS/gemini_ros.git
    ```
 3. 依存関係スクリプトの実行
    ```bash
