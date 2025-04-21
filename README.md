@@ -1,4 +1,6 @@
-# gemini_ros
+# Gemini ROS2
+
+![gemini_ros package image](gemini_ros.jpg)
 
 このパッケージは、GoogleのGeminiモデルをROS 2環境で利用するための機能を提供します。
 
