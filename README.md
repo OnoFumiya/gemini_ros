@@ -1,6 +1,6 @@
 # Gemini ROS2
 
-![gemini_ros package image](gemini_ros.jpg)
+![gemini_ros package image](img/gemini_ros.jpg)
 
 このパッケージは、GoogleのGeminiモデルをROS 2環境で利用するための機能を提供します。
 
@@ -62,7 +62,7 @@
 
 1. Geminiサービスサーバーノードを起動します。APIキーなどの必要なパラメータは、Launchファイルまたは個別の設定ファイルで指定できます。
    ```bash
-   ros2 launch gemini_bringup gemini_service.launch.py
+   ros2 launch gemini_ros gemini_server.launch.py
    ```
 2. Geminiサービスクライアントノードを起動し、対話を開始します。クライアントノードは、LLM (テキスト)、VLM (画像)、STT (音声) の各モードをサポートしています。
    ```bash
