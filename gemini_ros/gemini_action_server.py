@@ -3,11 +3,8 @@ import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
-# from rclpy.executors import ExternalShutdownException
-# from rclpy.executors import MultiThreadedExecutor
 import time
 import datetime
-# from gemini_interface.srv import GeminiService
 import cv2
 from cv_bridge import CvBridge
 from sensor_msgs.msg import Image
@@ -15,33 +12,21 @@ from sobits_interfaces.action import ChatLlmRecognition
 from google import genai
 import yaml
 
+## MODEL Example : 'gemini-2.0-flash'
+
 class GeminiActionServer(Node):
     def __init__(self):
         super().__init__('gemini_action_server')
 
         self.bridge = CvBridge()
 
-        # self.declare_parameter('model_name', 'gemini-2.0-flash')
         self.declare_parameter('api_key', '')
         self.declare_parameter('max_output_tokens', 256)
-        # self.declare_parameter('use_crispe', True)
-        # self.declare_parameter('use_history', True)
-        # self.declare_parameter('history_length', 10)
-        # self.declare_parameter('capacity', '')
-        # self.declare_parameter('role', '')
-        # self.declare_parameter('insight', '')
-        # self.declare_parameter('statement', '')
-        # self.declare_parameter('personality', '')
-        # self.declare_parameter('experiment', '')
 
         self.declare_parameter('prompt_file', '')
 
-        # self.model_name = self.get_parameter('model_name').get_parameter_value().string_value
         self.api_key = self.get_parameter('api_key').get_parameter_value().string_value
         self.max_output_tokens = self.get_parameter('max_output_tokens').get_parameter_value().integer_value
-        # self.use_crispe = self.get_parameter('use_crispe').get_parameter_value().bool_value
-        # self.use_history = self.get_parameter('use_history').get_parameter_value().bool_value
-        # self.history_length = self.get_parameter('history_length').get_parameter_value().integer_value
 
         self.prompt_file = self.get_parameter('prompt_file').get_parameter_value().string_value
         self.yaml_folder_path = "/".join(self.prompt_file.split("/")[:-1]) +"/"
@@ -56,19 +41,8 @@ class GeminiActionServer(Node):
         self.client = genai.Client(api_key=self.api_key)
 
         self.chat_messages = {}
-        # self.history = []
         self.build_prompt()
 
-        # self.crispe_prompt = "\n".join([
-        #     self.get_parameter('capacity').get_parameter_value().string_value,
-        #     self.get_parameter('role').get_parameter_value().string_value,
-        #     self.get_parameter('insight').get_parameter_value().string_value,
-        #     self.get_parameter('statement').get_parameter_value().string_value,
-        #     self.get_parameter('personality').get_parameter_value().string_value,
-        #     self.get_parameter('experiment').get_parameter_value().string_value,
-        # ]) if self.use_crispe else ""
-
-        # self.srv = self.create_service(GeminiService, 'gemini_service', self.gemini_callback)
         self.action_server_ = ActionServer(self, ChatLlmRecognition, "gemini_action",
             execute_callback=self.gemini_callback, callback_group=ReentrantCallbackGroup(),
             goal_callback=self.goal_callback,
@@ -104,12 +78,31 @@ class GeminiActionServer(Node):
         for i in range(len(goal_handle.request.image)):
             img = goal_handle.request.image[i]
             image = self.bridge.imgmsg_to_cv2(img)
-            if img.encoding == "rgb8":
-                image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+
+            if img.encoding == 'bgr8':
+                pass
+            elif img.encoding == 'bgra8':
+                image     = cv2.cvtColor(image, cv2.COLOR_RGBA2RGB)
+            elif img.encoding == 'rgba8':
+                image     = cv2.cvtColor(image, cv2.COLOR_BGRA2RGB)
+            elif img.encoding == 'rgb8':
+                image     = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+            else:
+                print("\033[31mEncoding ERROR\033[0m")
+                return response
+
             save_file_name = self.yaml_folder_path + "result_" + str(dt_now.year) + "_" + str(dt_now.month) + "_" + str(dt_now.day) + "_" + str(dt_now.hour) + "_" + str(dt_now.minute) + "_" + str(dt_now.second) + "_label" + str(i) + ".png"
             cv2.imwrite(save_file_name, image)
             uploaded_file = self.client.files.upload(file=save_file_name)
             self.chat_messages[goal_handle.request.room_name][-1]["parts"] += [{"file_data": {"mime_type": uploaded_file.mime_type, "file_uri": uploaded_file.uri}}]
+
+        for i in range(len(goal_handle.request.sound_file_path)):
+            sound_file = goal_handle.request.sound_file_path[i]
+            if (os.path.isfile(uploaded_file)):
+                uploaded_file = self.client.files.upload(file=sound_file)
+                self.chat_messages[goal_handle.request.room_name][-1]["parts"] += [{"file_data": {"mime_type": uploaded_file.mime_type, "file_uri": uploaded_file.uri}}]
+            else:
+                print("\033[31mNo File Path\033[0m")
 
         feedback.end_flag = False
         feedback.wip_result = ""
@@ -139,10 +132,6 @@ class GeminiActionServer(Node):
         else:
             self.chat_messages[goal_handle.request.room_name] = self.chat_messages[goal_handle.request.room_name][:-1]
 
-        print("\033[31m", flush=True)
-        print(self.chat_messages[goal_handle.request.room_name], flush=True)
-        print("\033[0m", flush=True)
-        print("\n===============================================", flush=True)
         goal_handle.succeed()
         return response
 
@@ -164,13 +153,6 @@ class GeminiActionServer(Node):
                         else:
                             uploaded_file = self.client.files.upload(file=self.yaml_folder_path + f)
                         self.chat_messages[str(rn)][-1]["parts"] += [{"file_data": {"mime_type": uploaded_file.mime_type, "file_uri": uploaded_file.uri}}]
-
-        print("\033[32m================")
-        for k in self.chat_messages.keys():
-            print(k)
-            print(self.chat_messages[k])
-            print("---")
-        print(" ================\033[0m")
 
 
 
