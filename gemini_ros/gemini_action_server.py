@@ -98,7 +98,7 @@ class GeminiActionServer(Node):
 
         for i in range(len(goal_handle.request.sound_file_path)):
             sound_file = goal_handle.request.sound_file_path[i]
-            if (os.path.isfile(uploaded_file)):
+            if (os.path.isfile(sound_file)):
                 uploaded_file = self.client.files.upload(file=sound_file)
                 self.chat_messages[goal_handle.request.room_name][-1]["parts"] += [{"file_data": {"mime_type": uploaded_file.mime_type, "file_uri": uploaded_file.uri}}]
             else:
