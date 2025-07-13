@@ -1,4 +1,4 @@
-# gemini_ros
+# Gemini ROS
 
 `gemini_ros`は、Google Gemini APIと連携して、ROS2上で大規模言語モデル（LLM）とのチャット機能を提供するパッケージです。画像や音声ファイルをLLMへの入力として使用することも可能です。
 
