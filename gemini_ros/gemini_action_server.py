@@ -1,16 +1,20 @@
 import os
+import time
+import datetime
+import cv2
+import yaml
+from google import genai
+import ament_index_python
+
 import rclpy
 from rclpy.node import Node
 from rclpy.action import ActionServer, CancelResponse, GoalResponse
 from rclpy.callback_groups import ReentrantCallbackGroup
-import time
-import datetime
-import cv2
-from cv_bridge import CvBridge
+
 from sensor_msgs.msg import Image
 from sobits_interfaces.action import ChatLlmRecognition
-from google import genai
-import yaml
+
+from cv_bridge import CvBridge
 
 ## MODEL Example : 'gemini-2.0-flash'
 
@@ -21,21 +25,18 @@ class GeminiActionServer(Node):
         self.bridge = CvBridge()
 
         self.declare_parameter('api_key', '')
-        self.declare_parameter('max_output_tokens', 256)
-
         self.declare_parameter('prompt_file', '')
 
         self.api_key = self.get_parameter('api_key').get_parameter_value().string_value
-        self.max_output_tokens = self.get_parameter('max_output_tokens').get_parameter_value().integer_value
-
         self.prompt_file = self.get_parameter('prompt_file').get_parameter_value().string_value
-        self.yaml_folder_path = "/".join(self.prompt_file.split("/")[:-1]) +"/"
+        self.pkg_path = ament_index_python.get_package_share_directory('gemini_ros')
+        self.config_path = self.pkg_path + '/config/'
 
         with open(self.prompt_file, "r") as file:
             self.prompt = yaml.safe_load(file)
 
         if self.api_key == '':
-            self.get_logger().error('API key not set')
+            self.get_logger().error('API Key is not set. Please set the `api_key` parameter.')
             return
 
         self.client = genai.Client(api_key=self.api_key)
@@ -91,7 +92,7 @@ class GeminiActionServer(Node):
                 print("\033[31mEncoding ERROR\033[0m")
                 return response
 
-            save_file_name = self.yaml_folder_path + "result_" + str(dt_now.year) + "_" + str(dt_now.month) + "_" + str(dt_now.day) + "_" + str(dt_now.hour) + "_" + str(dt_now.minute) + "_" + str(dt_now.second) + "_label" + str(i) + ".png"
+            save_file_name = self.config_path + "result_" + str(dt_now.year) + "_" + str(dt_now.month) + "_" + str(dt_now.day) + "_" + str(dt_now.hour) + "_" + str(dt_now.minute) + "_" + str(dt_now.second) + "_label" + str(i) + ".png"
             cv2.imwrite(save_file_name, image)
             uploaded_file = self.client.files.upload(file=save_file_name)
             self.chat_messages[goal_handle.request.room_name][-1]["parts"] += [{"file_data": {"mime_type": uploaded_file.mime_type, "file_uri": uploaded_file.uri}}]
@@ -151,9 +152,8 @@ class GeminiActionServer(Node):
                         if (f[0] == "/"):
                             uploaded_file = self.client.files.upload(file=f)
                         else:
-                            uploaded_file = self.client.files.upload(file=self.yaml_folder_path + f)
+                            uploaded_file = self.client.files.upload(file=self.config_path + f)
                         self.chat_messages[str(rn)][-1]["parts"] += [{"file_data": {"mime_type": uploaded_file.mime_type, "file_uri": uploaded_file.uri}}]
-
 
 
 def main(args=None):
