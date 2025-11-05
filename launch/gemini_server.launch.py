@@ -9,20 +9,14 @@ from launch_ros.actions import Node
 def generate_launch_description():
     api_key_arg = DeclareLaunchArgument(
         "api_key",
-        default_value="Your Gemini API Key",
+        default_value=os.getenv("GEMINI_API_KEY", ""),
         description="Gemini API Key",
     )
 
     prompt_file_arg = DeclareLaunchArgument(
         "prompt_file",
-        default_value=os.path.join(get_package_share_directory("gemini_ros"), 'prompt', 'base_prompt.yaml'),
+        default_value=os.path.join(get_package_share_directory("gemini_ros"), 'config', 'base_prompt.yaml'),
         description="Prompt data format file path",
-    )
-
-    max_output_tokens_arg = DeclareLaunchArgument(
-        "max_output_tokens",
-        default_value="256",
-        description="Maximum number of output tokens for Gemini",
     )
 
     gemini_action_server_node = Node(
@@ -34,16 +28,15 @@ def generate_launch_description():
             {
                 "api_key": LaunchConfiguration("api_key"),
                 "prompt_file": LaunchConfiguration("prompt_file"),
-                "max_output_tokens": LaunchConfiguration("max_output_tokens"),
             }
         ],
     )
+
 
     return LaunchDescription(
         [
             api_key_arg,
             prompt_file_arg,
-            max_output_tokens_arg,
             gemini_action_server_node,
         ]
     )
