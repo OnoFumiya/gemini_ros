@@ -103,11 +103,11 @@ class GeminiActionServer(Node):
             if img_msg.encoding == 'bgr8':
                 pass
             elif img_msg.encoding == 'bgra8':
-                img_cv     = cv2.cvtColor(img_cv, cv2.COLOR_RGBA2RGB)
+                img_cv     = cv2.cvtColor(img_cv, cv2.COLOR_BGRA2BGR)
             elif img_msg.encoding == 'rgba8':
-                img_cv     = cv2.cvtColor(img_cv, cv2.COLOR_BGRA2RGB)
+                img_cv     = cv2.cvtColor(img_cv, cv2.COLOR_RGBA2BGR)
             elif img_msg.encoding == 'rgb8':
-                img_cv     = cv2.cvtColor(img_cv, cv2.COLOR_BGR2RGB)
+                img_cv     = cv2.cvtColor(img_cv, cv2.COLOR_RGB2BGR)
             else:
                 self.get_logger().error('Unsupported image encoding: %s' % img_msg.encoding)
                 goal_handle.canceled()
@@ -123,6 +123,7 @@ class GeminiActionServer(Node):
                 str(dt_now.second) + "_" + \
                 "label" + str(i) + ".png")
             cv2.imwrite(save_file_name, img_cv)
+            self.get_logger().info('Saved image to %s' % save_file_name)
 
             uploaded_file = self.genai_client.files.upload(file=save_file_name)
             self.chat_messages[goal_handle.request.room_name][-1]["parts"] += \
@@ -130,6 +131,7 @@ class GeminiActionServer(Node):
                     "mime_type": uploaded_file.mime_type,
                     "file_uri": uploaded_file.uri
                 }}]
+            self.get_logger().info('Uploaded image file to GenAI: %s' % uploaded_file.uri)
 
         for i in range(len(goal_handle.request.sound_file_path)):
             sound_file = goal_handle.request.sound_file_path[i]
@@ -140,6 +142,7 @@ class GeminiActionServer(Node):
                         "mime_type": uploaded_file.mime_type,
                         "file_uri": uploaded_file.uri
                     }}]
+                self.get_logger().info('Uploaded sound file to GenAI: %s' % uploaded_file.uri)
             else:
                 self.get_logger().error('Sound file not found: %s' % sound_file)
                 goal_handle.canceled()
@@ -184,6 +187,7 @@ class GeminiActionServer(Node):
             self.chat_messages[goal_handle.request.room_name] = self.chat_messages[goal_handle.request.room_name][:-1]
 
         goal_handle.succeed()
+        self.get_logger().info('Finished executing goal')
         return response
 
 
