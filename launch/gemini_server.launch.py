@@ -7,7 +7,11 @@ from launch_ros.actions import Node
 
 
 def generate_launch_description():
-    robot_name = "gemini_robot"
+    robot_name_arg = DeclareLaunchArgument(
+        "robot_name",
+        default_value="",
+        description="Name of the robot",
+    )
 
     api_key_arg = DeclareLaunchArgument(
         "api_key",
@@ -29,7 +33,7 @@ def generate_launch_description():
         package="gemini_ros",
         executable="gemini_action_server",
         name="gemini_action_server",
-        namespace=robot_name,
+        namespace=LaunchConfiguration("robot_name"),
         output="screen",
         parameters=[
             {
@@ -43,6 +47,7 @@ def generate_launch_description():
 
     return LaunchDescription(
         [
+            robot_name_arg,
             api_key_arg,
             rooms_file_arg,
             gemini_action_server_node,
