@@ -1,0 +1,6 @@
+/**:
+  ros__parameters:
+    genai:
+      temperature: 0.5    # Lower: less open-ended or creative, higher: more diverse or creative
+      thinking_budget: 0  # 0 is DISABLED. -1 is AUTOMATIC
+      response_mime_type: "application/json"  # `text/plain` or `application/json`
