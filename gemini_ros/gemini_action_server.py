@@ -45,7 +45,7 @@ class GeminiActionServer(Node):
 
         if self.api_key == '':
             self.get_logger().error('API Key is not set. Please set the `api_key` parameter.')
-            return
+            exit(1)
 
         with open(self.room_file, "r") as file:
             self.rooms = yaml.safe_load(file)
