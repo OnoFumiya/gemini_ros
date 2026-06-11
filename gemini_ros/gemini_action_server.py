@@ -163,8 +163,13 @@ class GeminiActionServer(Node):
                 goal_handle.canceled()
                 return response
 
-            self.get_logger().debug('Received chunk: %s' % chunk.text)
-            feedback.wip_result += chunk.text
+            chunk_text = chunk.text or ""
+            if not chunk_text:
+                self.get_logger().debug("Received non-text or empty Gemini stream chunk.")
+                continue
+
+            self.get_logger().debug('Received chunk: %s' % chunk_text)
+            feedback.wip_result += chunk_text
             self.get_logger().debug('Published feedback: %s' % feedback.wip_result)
             goal_handle.publish_feedback(feedback)
 
