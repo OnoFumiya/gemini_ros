@@ -21,13 +21,13 @@ class GeminiActionServer(Node):
     def __init__(self):
         super().__init__('gemini_action_server')
         self.declare_parameter('api_key', '')
-        self.declare_parameter('rooms_file', '')
+        self.declare_parameter('prompt_file', '')
         self.declare_parameter('genai.temperature', 0.5)
         self.declare_parameter('genai.thinking_budget', 0)
         self.declare_parameter('genai.response_mime_type', 'application/json')
 
         self.api_key = self.get_parameter('api_key').get_parameter_value().string_value
-        self.room_file = self.get_parameter('rooms_file').get_parameter_value().string_value
+        self.prompt_file = self.get_parameter('prompt_file').get_parameter_value().string_value
         self.pkg_path = ament_index_python.get_package_share_directory('gemini_ros')
         self.config_path = os.path.join(self.pkg_path, 'config/')
         self.genai={
@@ -38,7 +38,7 @@ class GeminiActionServer(Node):
 
         # Print out parameters for debugging
         self.get_logger().info(f'API Key: {"[HIDDEN]" if self.api_key else "[NOT SET]"}')
-        self.get_logger().info(f'Room File: {self.room_file}')
+        self.get_logger().info(f'Prompt File: {self.prompt_file}')
         self.get_logger().info(f'GenAI Temperature: {self.genai["temperature"]}')
         self.get_logger().info(f'GenAI Thinking Budget: {self.genai["thinking_budget"]}')
         self.get_logger().info(f'GenAI Response Mime Type: {self.genai["response_mime_type"]}')
@@ -47,7 +47,7 @@ class GeminiActionServer(Node):
             self.get_logger().error('API Key is not set. Please set the `api_key` parameter.')
             exit(1)
 
-        with open(self.room_file, "r") as file:
+        with open(self.prompt_file, "r") as file:
             self.rooms = yaml.safe_load(file)
 
         self.genai_client = genai.Client(api_key=self.api_key)

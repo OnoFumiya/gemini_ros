@@ -19,8 +19,8 @@ def generate_launch_description():
         description="Gemini API Key",
     )
 
-    rooms_file_arg = DeclareLaunchArgument(
-        "rooms_file",
+    prompt_file_arg = DeclareLaunchArgument(
+        "prompt_file",
         default_value=os.path.join(get_package_share_directory("gemini_ros"), 'config', 'genai_room.yaml'),
         description="Prompt data format file path",
     )
@@ -38,7 +38,7 @@ def generate_launch_description():
         parameters=[
             {
                 "api_key": LaunchConfiguration("api_key"),
-                "rooms_file": LaunchConfiguration("rooms_file"),
+                "prompt_file": LaunchConfiguration("prompt_file"),
             },
             config_file_path
         ],
@@ -49,7 +49,7 @@ def generate_launch_description():
         [
             robot_name_arg,
             api_key_arg,
-            rooms_file_arg,
+            prompt_file_arg,
             gemini_action_server_node,
         ]
     )
