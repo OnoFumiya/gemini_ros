@@ -7,13 +7,15 @@ DIR=`pwd`
 
 # Clone required packages
 cd ..
-git clone -b ${ROS_DISTRO}-devel https://github.com/TeamSOBITS/sobits_interfaces.git
+git clone -b ${ROS_DISTRO}-devel https://github.com/OnoFumiya/ai_interfaces.git
+cd ai_interfaces/
+bash install.sh
 
 # Install common dependencies
 python3 -m pip install --break-system-packages -U pip
 python3 -m pip install --break-system-packages \
     google-genai \
-    numpy
+    "numpy<2.0"
 
 # Install ROS dependencies
 sudo apt update

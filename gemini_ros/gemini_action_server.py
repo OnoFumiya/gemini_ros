@@ -14,7 +14,8 @@ import ament_index_python
 from cv_bridge import CvBridge
 
 from sensor_msgs.msg import Image
-from sobits_interfaces.action import ChatLlmRecognition
+from ai_interfaces.msg import ShotMessageSet
+from ai_interfaces.action import Chat
 
 
 class GeminiActionServer(Node):
@@ -61,7 +62,7 @@ class GeminiActionServer(Node):
 
         self.bridge = CvBridge()
 
-        self.action_server_ = ActionServer(self, ChatLlmRecognition, "gemini_action",
+        self.action_server_ = ActionServer(self, Chat, "gemini_action",
             execute_callback=self.gemini_callback, callback_group=ReentrantCallbackGroup(),
             goal_callback=self.goal_callback,
             cancel_callback=self.cancel_callback)
@@ -85,19 +86,24 @@ class GeminiActionServer(Node):
     def gemini_callback(self, goal_handle):
         self.get_logger().info('Executing goal')
 
-        response = ChatLlmRecognition.Result()
+        response = Chat.Result()
+        response.result = ShotMessageSet()
+        response.result.message = ""
+        response.result.image = []
+        response.result.sound_file_path = []
         response.elapsed_time = -1.0
-        response.result = ""
+        response.success = False
+        response.reason = ""
 
         # print("===============================================", flush=True)
         if ((goal_handle.request.room_name in self.chat_messages.keys()) != True):
             self.chat_messages[goal_handle.request.room_name] = []
 
-        self.chat_messages[goal_handle.request.room_name] += [{'role': 'user', 'parts': [{"text": goal_handle.request.request}]}]
+        self.chat_messages[goal_handle.request.room_name] += [{'role': 'user', 'parts': [{"text": goal_handle.request.request.message}]}]
 
         dt_now = datetime.datetime.now()
-        for i in range(len(goal_handle.request.image)):
-            img_msg = goal_handle.request.image[i]
+        for i in range(len(goal_handle.request.request.image)):
+            img_msg = goal_handle.request.request.image[i]
             img_cv = self.bridge.imgmsg_to_cv2(img_msg)
 
             if img_msg.encoding == 'bgr8':
@@ -111,6 +117,7 @@ class GeminiActionServer(Node):
             else:
                 self.get_logger().error('Unsupported image encoding: %s' % img_msg.encoding)
                 goal_handle.canceled()
+                response.reason = "[Failed] Unsupported image encoding: %s" % img_msg.encoding
                 return response
 
             save_file_name = os.path.join(
@@ -133,8 +140,8 @@ class GeminiActionServer(Node):
                 }}]
             self.get_logger().info('Uploaded image file to GenAI: %s' % uploaded_file.uri)
 
-        for i in range(len(goal_handle.request.sound_file_path)):
-            sound_file = goal_handle.request.sound_file_path[i]
+        for i in range(len(goal_handle.request.request.sound_file_path)):
+            sound_file = goal_handle.request.request.sound_file_path[i]
             if (os.path.isfile(sound_file)):
                 uploaded_file = self.genai_client.files.upload(file=sound_file)
                 self.chat_messages[goal_handle.request.room_name][-1]["parts"] += \
@@ -146,11 +153,11 @@ class GeminiActionServer(Node):
             else:
                 self.get_logger().error('Sound file not found: %s' % sound_file)
                 goal_handle.canceled()
+                response.reason = "[Failed] Sound file not found: %s" % sound_file
                 return response
 
-        feedback = ChatLlmRecognition.Feedback()
+        feedback = Chat.Feedback()
         feedback.wip_result = ""
-        feedback.end_flag = False
 
         starting_time = self.get_clock().now()
 
@@ -161,6 +168,7 @@ class GeminiActionServer(Node):
         ):
             if goal_handle.is_cancel_requested:
                 goal_handle.canceled()
+                response.reason = "[Failed] Goal canceled by client."
                 return response
 
             chunk_text = chunk.text or ""
@@ -174,18 +182,17 @@ class GeminiActionServer(Node):
             goal_handle.publish_feedback(feedback)
 
         ending_time = self.get_clock().now()
-        feedback.end_flag = True
         goal_handle.publish_feedback(feedback)
 
         response.elapsed_time = (ending_time - starting_time).nanoseconds / 1e9
-        response.result = feedback.wip_result
+        response.result.message = feedback.wip_result
 
         if goal_handle.request.is_stack:
             self.chat_messages[goal_handle.request.room_name] += \
                 [{
                     'role': 'model',
                     'parts': [{
-                        "text": response.result
+                        "text": response.result.message
                     }]
                 }]
         else:
@@ -193,6 +200,8 @@ class GeminiActionServer(Node):
 
         goal_handle.succeed()
         self.get_logger().info('Finished executing goal')
+        response.success = True
+        response.reason = "[Success]"
         return response
 
 
